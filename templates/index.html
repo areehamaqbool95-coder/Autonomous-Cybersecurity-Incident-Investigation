@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Autonomous SOC Incident Investigator | DCoders</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-base: #f4f7fb;
+      --glass-bg: rgba(255, 255, 255, 0.82);
+      --glass-border: rgba(255, 255, 255, 0.92);
+      --card-shadow: 0 12px 32px -8px rgba(15, 23, 42, 0.08), 0 2px 6px rgba(15, 23, 42, 0.04);
+      --text-primary: #0f172a;
+      --text-secondary: #475569;
+      --text-muted: #64748b;
+      --accent-blue: #1d4ed8;
+      --accent-blue-hover: #1e40af;
+      --accent-blue-soft: #eff6ff;
+      --accent-red: #dc2626;
+      --accent-red-soft: #fef2f2;
+      --accent-emerald: #059669;
+      --accent-emerald-soft: #ecfdf5;
+      --accent-amber: #d97706;
+      --accent-amber-soft: #fffbeb;
+      --border-subtle: #e2e8f0;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--text-primary);
+      background-color: var(--bg-base);
+      background-image:
+        radial-gradient(at 10% 10%, rgba(29, 78, 216, 0.09) 0px, transparent 45%),
+        radial-gradient(at 90% 15%, rgba(5, 150, 105, 0.07) 0px, transparent 45%),
+        radial-gradient(at 80% 90%, rgba(220, 38, 38, 0.05) 0px, transparent 45%);
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(255, 255, 255, 0.78);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 0.9rem 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .brand-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #1d4ed8, #2563eb);
+      color: #fff;
+      display: grid;
+      place-items: center;
+      font-weight: 700;
+      font-size: 1rem;
+      box-shadow: 0 6px 16px rgba(29, 78, 216, 0.25);
+    }
+
+    .brand h1 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+
+    .brand span {
+      display: block;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    .status-pills {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+    }
+
+    .pill {
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.35rem 0.75rem;
+      border-radius: 999px;
+      border: 1px solid var(--border-subtle);
+      background: #fff;
+      color: var(--text-secondary);
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent-emerald);
+    }
+
+    .container {
+      max-width: 1320px;
+      margin: 1.75rem auto;
+      padding: 0 1.5rem 3rem;
+      display: grid;
+      grid-template-columns: 400px 1fr;
+      gap: 1.5rem;
+      align-items: start;
+    }
+
+    @media (max-width: 980px) {
+      .container { grid-template-columns: 1fr; }
+    }
+
+    .glass-card {
+      background: var(--glass-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--glass-border);
+      border-radius: 16px;
+      box-shadow: var(--card-shadow);
+      padding: 1.5rem;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.1rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .card-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .preset-bar {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .preset-btn {
+      flex: 1;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.45rem 0.6rem;
+      border-radius: 8px;
+      border: 1px solid var(--border-subtle);
+      background: #fff;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .preset-btn:hover {
+      border-color: var(--accent-blue);
+      color: var(--accent-blue);
+      background: var(--accent-blue-soft);
+    }
+
+    .form-grid {
+      display: grid;
+      gap: 0.85rem;
+    }
+
+    .form-row-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+    }
+
+    label {
+      display: block;
+      font-size: 0.76rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 0.3rem;
+    }
+
+    input, textarea {
+      width: 100%;
+      font-family: inherit;
+      font-size: 0.85rem;
+      color: var(--text-primary);
+      background: rgba(255, 255, 255, 0.92);
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      padding: 0.55rem 0.75rem;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    input.mono { font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; }
+
+    input:focus, textarea:focus {
+      outline: none;
+      border-color: var(--accent-blue);
+      box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.12);
+    }
+
+    .submit-btn {
+      margin-top: 0.4rem;
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border: none;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #1d4ed8, #2563eb);
+      color: #fff;
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      box-shadow: 0 8px 20px -4px rgba(29, 78, 216, 0.35);
+      transition: transform 0.12s ease, background 0.15s ease;
+    }
+
+    .submit-btn:hover { background: var(--accent-blue-hover); transform: translateY(-1px); }
+    .submit-btn:disabled { opacity: 0.7; cursor: wait; transform: none; }
+
+    .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,255,255,0.4);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.75s linear infinite;
+      display: none;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .pipeline {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.65rem;
+      margin-bottom: 1.25rem;
+    }
+
+    @media (max-width: 640px) {
+      .pipeline { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    .step {
+      background: #fff;
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 0.7rem 0.85rem;
+    }
+
+    .step.active {
+      border-color: #93c5fd;
+      background: var(--accent-blue-soft);
+    }
+
+    .step.skipped {
+      opacity: 0.55;
+      background: #f8fafc;
+    }
+
+    .step-num {
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--accent-blue);
+    }
+
+    .step-name {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.25rem 0.65rem;
+      border-radius: 999px;
+      font-size: 0.74rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+
+    .badge-critical, .badge-high, .badge-p1 {
+      background: var(--accent-red-soft);
+      color: var(--accent-red);
+      border: 1px solid #fecaca;
+    }
+
+    .badge-medium, .badge-p2, .badge-amber {
+      background: var(--accent-amber-soft);
+      color: var(--accent-amber);
+      border: 1px solid #fde68a;
+    }
+
+    .badge-low, .badge-safe, .badge-p3, .badge-p4 {
+      background: var(--accent-emerald-soft);
+      color: var(--accent-emerald);
+      border: 1px solid #a7f3d0;
+    }
+
+    .badge-blue {
+      background: var(--accent-blue-soft);
+      color: var(--accent-blue);
+      border: 1px solid #bfdbfe;
+    }
+
+    .results-stack { display: grid; gap: 1.25rem; }
+
+    .kpi-strip {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.85rem;
+      margin-bottom: 1rem;
+    }
+
+    .kpi-box {
+      background: #fff;
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 0.85rem 1rem;
+    }
+
+    .kpi-label {
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+
+    .kpi-value {
+      margin-top: 0.25rem;
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .timeline-list {
+      list-style: none;
+      border-left: 2px solid #bfdbfe;
+      margin-left: 0.5rem;
+      padding-left: 1rem;
+      display: grid;
+      gap: 0.65rem;
+    }
+
+    .timeline-list li {
+      position: relative;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.78rem;
+      background: #fff;
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 0.55rem 0.75rem;
+      color: var(--text-primary);
+    }
+
+    .timeline-list li::before {
+      content: "";
+      position: absolute;
+      left: -1.35rem;
+      top: 0.85rem;
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--accent-blue);
+    }
+
+    .tag-wrap {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+      margin-top: 0.5rem;
+    }
+
+    .tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      padding: 0.25rem 0.6rem;
+      border-radius: 6px;
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      color: var(--text-primary);
+    }
+
+    .action-list {
+      list-style: none;
+      display: grid;
+      gap: 0.55rem;
+      margin-top: 0.6rem;
+    }
+
+    .action-list li {
+      background: #fff;
+      border: 1px solid var(--border-subtle);
+      border-left: 4px solid var(--accent-blue);
+      border-radius: 8px;
+      padding: 0.65rem 0.85rem;
+      font-size: 0.86rem;
+      font-weight: 500;
+    }
+
+    .hitl-banner {
+      margin-top: 0.9rem;
+      padding: 0.75rem 1rem;
+      border-radius: 10px;
+      background: var(--accent-amber-soft);
+      border: 1px solid #fcd34d;
+      color: #92400e;
+      font-size: 0.82rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .hitl-actions button {
+      padding: 0.35rem 0.75rem;
+      border-radius: 7px;
+      font-size: 0.76rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid transparent;
+    }
+
+    .btn-approve { background: var(--accent-emerald); color: #fff; }
+    .btn-dismiss { background: #fff; color: var(--text-secondary); border-color: #cbd5e1 !important; }
+
+    .empty-state {
+      text-align: center;
+      padding: 3.5rem 1.5rem;
+      color: var(--text-muted);
+    }
+
+    .empty-state h3 { color: var(--text-primary); margin-bottom: 0.4rem; font-size: 1.05rem; }
+
+    .error-box {
+      background: var(--accent-red-soft);
+      border: 1px solid #fecaca;
+      color: var(--accent-red);
+      padding: 1rem;
+      border-radius: 12px;
+      font-size: 0.85rem;
+    }
+
+    pre.json-box {
+      margin-top: 0.75rem;
+      background: #0f172a;
+      color: #e2e8f0;
+      padding: 1rem;
+      border-radius: 10px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.76rem;
+      overflow-x: auto;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-icon">SOC</div>
+      <div>
+        <h1>Autonomous Incident Investigator</h1>
+        <span>Multi-Agent Cyber Defense Pipeline &bull; CrewAI Flows + FastAPI</span>
+      </div>
+    </div>
+    <div class="status-pills">
+      <span class="pill"><span class="dot"></span> 4 Specialized Agents Ready</span>
+      <span class="pill">Team: DCoders</span>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="glass-card">
+      <div class="card-header">
+        <div class="card-title">Incoming SIEM / EDR Alert</div>
+        <span class="badge badge-blue">Intake</span>
+      </div>
+
+      <div class="preset-bar">
+        <button type="button" class="preset-btn" onclick="loadPreset('attack')">Load Attack Sample</button>
+        <button type="button" class="preset-btn" onclick="loadPreset('benign')">Load False Positive</button>
+      </div>
+
+      <form id="alertForm" action="/investigate" method="post" class="form-grid" onsubmit="showLoading()">
+        <div class="form-row-2">
+          <div>
+            <label for="alert_id">Alert ID</label>
+            <input id="alert_id" name="alert_id" class="mono" value="{{ sample_alert.alert_id }}" required />
+          </div>
+          <div>
+            <label for="timestamp">Timestamp (UTC)</label>
+            <input id="timestamp" name="timestamp" class="mono" value="{{ sample_alert.timestamp }}" required />
+          </div>
+        </div>
+
+        <div>
+          <label for="source">Telemetry Source</label>
+          <input id="source" name="source" value="{{ sample_alert.source }}" required />
+        </div>
+
+        <div class="form-row-2">
+          <div>
+            <label for="source_ip">Source IP</label>
+            <input id="source_ip" name="source_ip" class="mono" value="{{ sample_alert.source_ip or '' }}" placeholder="e.g. 185.220.101.45" />
+          </div>
+          <div>
+            <label for="target_user">Target User</label>
+            <input id="target_user" name="target_user" class="mono" value="{{ sample_alert.target_user or '' }}" placeholder="e.g. deploy_bot" />
+          </div>
+        </div>
+
+        <div>
+          <label for="target_host">Target Host / Asset</label>
+          <input id="target_host" name="target_host" class="mono" value="{{ sample_alert.target_host or '' }}" placeholder="e.g. prod-app-01" />
+        </div>
+
+        <div>
+          <label for="summary">Alert Summary</label>
+          <textarea id="summary" name="summary" rows="3" required>{{ sample_alert.summary }}</textarea>
+        </div>
+
+        <button id="submitBtn" type="submit" class="submit-btn">
+          <span id="btnSpinner" class="spinner"></span>
+          <span id="btnText">Run Multi-Agent Investigation</span>
+        </button>
+      </form>
+    </section>
+
+    <section class="results-stack">
+      <div class="glass-card" style="padding: 1rem 1.25rem;">
+        <div class="pipeline" style="margin-bottom: 0;">
+          <div class="step {{ 'active' if report else '' }}">
+            <div class="step-num">Agent 01</div>
+            <div class="step-name">Alert Triage</div>
+          </div>
+          <div class="step {{ 'skipped' if report and report.status == 'RESOLVED_FALSE_POSITIVE' else ('active' if report else '') }}">
+            <div class="step-num">Agent 02</div>
+            <div class="step-name">Log Forensics</div>
+          </div>
+          <div class="step {{ 'skipped' if report and report.status == 'RESOLVED_FALSE_POSITIVE' else ('active' if report else '') }}">
+            <div class="step-num">Agent 03</div>
+            <div class="step-name">Threat Intel</div>
+          </div>
+          <div class="step {{ 'skipped' if report and report.status == 'RESOLVED_FALSE_POSITIVE' else ('active' if report else '') }}">
+            <div class="step-num">Agent 04</div>
+            <div class="step-name">Response Plan</div>
+          </div>
+        </div>
+      </div>
+
+      {% if error %}
+        <div class="error-box">
+          <strong>Investigation Error:</strong> {{ error }}
+        </div>
+      {% endif %}
+
+      {% if report %}
+        <div class="glass-card">
+          <div class="card-header">
+            <div class="card-title">1. Triage Verdict &mdash; {{ report.alert_id }}</div>
+            {% if report.status == 'RESOLVED_FALSE_POSITIVE' %}
+              <span class="badge badge-safe">FALSE POSITIVE &bull; AUTO-CLOSED</span>
+            {% else %}
+              <span class="badge badge-{{ report.triage.severity | lower }}">{{ report.triage.severity }} SEVERITY</span>
+            {% endif %}
+          </div>
+
+          <div class="kpi-strip">
+            <div class="kpi-box">
+              <div class="kpi-label">Classification</div>
+              <div class="kpi-value">{{ 'Benign Noise' if report.triage.is_false_positive else 'Confirmed Threat' }}</div>
+            </div>
+            <div class="kpi-box">
+              <div class="kpi-label">Severity Level</div>
+              <div class="kpi-value">{{ report.triage.severity }}</div>
+            </div>
+            <div class="kpi-box">
+              <div class="kpi-label">Agent Confidence</div>
+              <div class="kpi-value">{{ (report.triage.confidence * 100) | round(0) | int }}%</div>
+            </div>
+          </div>
+
+          <p style="font-size: 0.88rem; color: var(--text-secondary);">{{ report.triage.reasoning }}</p>
+        </div>
+
+        {% if report.logs %}
+        <div class="glass-card">
+          <div class="card-header">
+            <div class="card-title">2. Forensic Log Timeline &amp; Extracted IOCs</div>
+            <span class="badge badge-blue">Log Investigator</span>
+          </div>
+
+          <p style="font-size: 0.88rem; color: var(--text-secondary); margin-bottom: 0.9rem;">
+            {{ report.logs.key_observations }}
+          </p>
+
+          <ul class="timeline-list">
+            {% for event in report.logs.timeline %}
+              <li>{{ event }}</li>
+            {% endfor %}
+          </ul>
+
+          {% if report.logs.extracted_iocs %}
+            <div style="margin-top: 1rem;">
+              <span class="kpi-label">Indicators of Compromise (IOCs)</span>
+              <div class="tag-wrap">
+                {% for ioc in report.logs.extracted_iocs %}
+                  <span class="tag">{{ ioc }}</span>
+                {% endfor %}
+              </div>
+            </div>
+          {% endif %}
+        </div>
+        {% endif %}
+
+        {% if report.threat_intel %}
+        <div class="glass-card">
+          <div class="card-header">
+            <div class="card-title">3. Threat Intelligence &amp; MITRE ATT&amp;CK</div>
+            <span class="badge badge-amber">{{ report.threat_intel.threat_category }}</span>
+          </div>
+
+          <div class="kpi-strip" style="grid-template-columns: 1fr 1fr;">
+            <div class="kpi-box">
+              <div class="kpi-label">Threat Classification</div>
+              <div class="kpi-value" style="font-size: 0.95rem;">{{ report.threat_intel.threat_category }}</div>
+            </div>
+            <div class="kpi-box">
+              <div class="kpi-label">Estimated Blast Radius</div>
+              <div class="kpi-value" style="font-size: 0.95rem;">{{ report.threat_intel.blast_radius }}</div>
+            </div>
+          </div>
+
+          <p style="font-size: 0.88rem; color: var(--text-secondary);">{{ report.threat_intel.intel_notes }}</p>
+
+          {% if report.threat_intel.mitre_techniques %}
+            <div style="margin-top: 0.85rem;">
+              <span class="kpi-label">Mapped MITRE ATT&amp;CK Techniques</span>
+              <div class="tag-wrap">
+                {% for tech in report.threat_intel.mitre_techniques %}
+                  <span class="tag" style="background: #eff6ff; border-color: #bfdbfe; color: #1d4ed8;">{{ tech }}</span>
+                {% endfor %}
+              </div>
+            </div>
+          {% endif %}
+        </div>
+        {% endif %}
+
+        {% if report.response_plan %}
+        <div class="glass-card">
+          <div class="card-header">
+            <div class="card-title">4. Recommended Response &amp; Containment Playbook</div>
+            <span class="badge badge-{{ report.response_plan.priority_level | lower }}">Priority {{ report.response_plan.priority_level }}</span>
+          </div>
+
+          <p style="font-size: 0.88rem; color: var(--text-secondary); margin-bottom: 0.6rem;">
+            {{ report.response_plan.executive_summary }}
+          </p>
+
+          <ul class="action-list">
+            {% for step in report.response_plan.immediate_actions %}
+              <li>{{ step }}</li>
+            {% endfor %}
+          </ul>
+
+          {% if report.response_plan.requires_human_approval %}
+            <div id="hitlBanner" class="hitl-banner">
+              <span>Human-in-the-Loop Gate: High-impact containment actions require SOC analyst authorization.</span>
+              <div class="hitl-actions">
+                <button type="button" class="btn-approve" onclick="approvePlaybook()">Approve &amp; Execute</button>
+                <button type="button" class="btn-dismiss" onclick="dismissPlaybook()">Hold</button>
+              </div>
+            </div>
+          {% endif %}
+        </div>
+        {% endif %}
+
+        <div class="glass-card" style="padding: 1rem 1.25rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 0.82rem; font-weight: 600; color: var(--text-secondary);">Structured Pydantic Output (JSON)</span>
+            <button type="button" class="preset-btn" style="flex: 0 0 auto;" onclick="toggleJson()">Toggle Raw JSON</button>
+          </div>
+          <pre id="rawJson" class="json-box">{{ report | tojson(indent=2) }}</pre>
+        </div>
+
+      {% else %}
+        <div class="glass-card empty-state">
+          <h3>Ready for Autonomous Triage</h3>
+          <p style="font-size: 0.88rem; max-width: 480px; margin: 0 auto;">
+            Select an alert preset on the left or enter live SIEM telemetry, then click
+            <strong>Run Multi-Agent Investigation</strong> to trigger the CrewAI Flow.
+          </p>
+        </div>
+      {% endif %}
+    </section>
+  </main>
+
+  <script>
+    const PRESETS = {
+      attack: {
+        alert_id: "ALT-2026-0042",
+        source: "SIEM / Linux Auth & EDR",
+        timestamp: "2026-11-19T02:15:10Z",
+        source_ip: "185.220.101.45",
+        target_user: "deploy_bot",
+        target_host: "prod-app-01",
+        summary: "Anomalous SSH login followed by remote shell script execution on prod-app-01"
+      },
+      benign: {
+        alert_id: "ALT-2026-0099",
+        source: "Internal Cron Monitor",
+        timestamp: "2026-11-19T09:00:05Z",
+        source_ip: "10.0.4.18",
+        target_user: "healthcheck",
+        target_host: "staging-db-01",
+        summary: "Scheduled internal healthcheck HTTP request triggered rate threshold on staging-db-01"
+      }
+    };
+
+    function loadPreset(type) {
+      const p = PRESETS[type];
+      if (!p) return;
+      document.getElementById("alert_id").value = p.alert_id;
+      document.getElementById("source").value = p.source;
+      document.getElementById("timestamp").value = p.timestamp;
+      document.getElementById("source_ip").value = p.source_ip;
+      document.getElementById("target_user").value = p.target_user;
+      document.getElementById("target_host").value = p.target_host;
+      document.getElementById("summary").value = p.summary;
+    }
+
+    function showLoading() {
+      const btn = document.getElementById("submitBtn");
+      btn.disabled = true;
+      document.getElementById("btnSpinner").style.display = "inline-block";
+      document.getElementById("btnText").textContent = "Agents Investigating...";
+    }
+
+    function toggleJson() {
+      const box = document.getElementById("rawJson");
+      box.style.display = box.style.display === "block" ? "none" : "block";
+    }
+
+    function approvePlaybook() {
+      const banner = document.getElementById("hitlBanner");
+      banner.style.background = "#ecfdf5";
+      banner.style.borderColor = "#6ee7b7";
+      banner.style.color = "#065f46";
+      banner.innerHTML = "<span>Playbook Authorized: Containment actions dispatched to SOAR webhook.</span>";
+    }
+
+    function dismissPlaybook() {
+      const banner = document.getElementById("hitlBanner");
+      banner.innerHTML = "<span>Action Held: Incident remains queued for senior Tier-3 review.</span>";
+    }
+  </script>
+</body>
+</html>
